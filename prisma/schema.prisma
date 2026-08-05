@@ -59,16 +59,20 @@ model User {
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
-  accounts     Account[]
-  sessions     Session[]
-  tasks        Task[]
-  workouts     Workout[]
-  reminders    Reminder[]
-  notes        Note[]
-  goals        Goal[]
-  streaks      Streak[]
-  achievements Achievement[]
-  analytics    Analytics[]
+  accounts            Account[]
+  sessions            Session[]
+  profile             UserProfile?
+  preferences         UserPreferences?
+  goals               UserGoals?
+  onboardingProgress  OnboardingProgress?
+  tasks               Task[]
+  workouts            Workout[]
+  reminders           Reminder[]
+  notes               Note[]
+  userGoals           Goal[]
+  streaks             Streak[]
+  achievements        Achievement[]
+  analytics           Analytics[]
 }
 
 model VerificationToken {
@@ -77,6 +81,68 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ==========================================
+// FTUE & PERSONALIZATION ENGINE MODELS
+// ==========================================
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  fullName  String
+  avatar    String?
+  bio       String?
+  timezone  String   @default("UTC")
+  country   String   @default("US")
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserPreferences {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  theme                   String   @default("system") // system, light, dark
+  notificationsEnabled    Boolean  @default(true)
+  reminderTime            String   @default("09:00")
+  preferredWorkoutTime    String   @default("07:00")
+  preferredWorkHoursStart String   @default("09:00")
+  preferredWorkHoursEnd   String   @default("17:00")
+  preferredStudyHoursStart String  @default("18:00")
+  preferredStudyHoursEnd   String  @default("20:00")
+  weekStartsOn            String   @default("monday") // monday, sunday
+  onboardingCompleted     Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserGoals {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  fitnessGoal       String   @default("Stay Active")
+  productivityGoal  String   @default("Personal Growth")
+  targetWorkoutDays Int      @default(3)
+  dailyTaskTarget   Int      @default(5)
+  weeklyFocus       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model OnboardingProgress {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  currentStep Int      @default(1)
+  stepData    String   @db.Text // JSON string for autosave state
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ==========================================
@@ -104,7 +170,7 @@ model Workout {
   id        String   @id @default(cuid())
   userId    String
   title     String
-  type      String   // STRENGTH, CARDIO, FLEXIBILITY, HIITT, ETC.
+  type      String   // STRENGTH, CARDIO, FLEXIBILITY, HIIT, ETC.
   duration  Int?     // minutes
   calories  Int?
   notes     String?

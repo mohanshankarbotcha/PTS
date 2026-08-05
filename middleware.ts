@@ -5,12 +5,13 @@ import { getToken } from "next-auth/jwt";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Define route classifications
   const isAuthPage =
     pathname.startsWith("/auth/signin") ||
     pathname.startsWith("/auth/signup") ||
     pathname.startsWith("/auth/forgot-password") ||
     pathname.startsWith("/auth/reset-password");
+
+  const isOnboardingPage = pathname.startsWith("/onboarding");
 
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
@@ -22,28 +23,37 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/goals") ||
     pathname.startsWith("/settings");
 
-  // Retrieve user JWT token
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
   });
 
   const isAuthenticated = !!token;
+  const isOnboardingCompleted = token?.onboardingCompleted === true;
 
-  // 1. If user is authenticated and trying to access an auth page (SignIn/SignUp), redirect to Dashboard
-  if (isAuthenticated && isAuthPage) {
-    // Prepared onboarding redirect logic (for future Prompt 05):
-    // if (token?.onboardingCompleted === false) {
-    //   return NextResponse.redirect(new URL("/onboarding", request.url));
-    // }
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // 2. If user is NOT authenticated and trying to access a protected route, redirect to Sign In
-  if (!isAuthenticated && isProtectedRoute) {
+  // 1. Unauthenticated users trying to access protected routes or onboarding -> Redirect to Sign In
+  if (!isAuthenticated && (isProtectedRoute || isOnboardingPage)) {
     const signInUrl = new URL("/auth/signin", request.url);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
+  }
+
+  // 2. Authenticated users trying to access auth pages (Sign In/Sign Up)
+  if (isAuthenticated && isAuthPage) {
+    if (!isOnboardingCompleted) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // 3. Authenticated user needs onboarding, but trying to access protected dashboard routes -> Redirect to Onboarding
+  if (isAuthenticated && isProtectedRoute && !isOnboardingCompleted) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
+  }
+
+  // 4. Authenticated user ALREADY completed onboarding, but trying to access /onboarding -> Redirect to Dashboard
+  if (isAuthenticated && isOnboardingPage && isOnboardingCompleted) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();
@@ -60,5 +70,6 @@ export const config = {
     "/goals/:path*",
     "/settings/:path*",
     "/auth/:path*",
+    "/onboarding/:path*",
   ],
 };
