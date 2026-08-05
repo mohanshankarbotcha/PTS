@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 
 export const authOptions: NextAuthOptions = {
@@ -24,18 +25,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // Infrastructure ready for Email/Password authentication
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Please enter both email and password.");
         }
 
-        // Placeholder authentication logic (Will be implemented when Auth page is built)
         const user = await db.user.findUnique({
-          where: { email: credentials.email },
+          where: { email: credentials.email.toLowerCase() },
         });
 
-        if (!user) {
-          return null;
+        if (!user || !user.passwordHash) {
+          throw new Error("Invalid email or password.");
+        }
+
+        const isPasswordValid = await bcrypt.compare(credentials.password, user.passwordHash);
+
+        if (!isPasswordValid) {
+          throw new Error("Invalid email or password.");
+        }
+
+        // Update last login timestamp asynchronously
+        try {
+          await db.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() },
+          });
+        } catch (e) {
+          console.warn("Failed to update last login timestamp:", e);
         }
 
         return {
@@ -43,6 +58,8 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           image: user.image,
+          onboardingCompleted: user.onboardingCompleted,
+          provider: user.provider || "credentials",
         };
       },
     }),
@@ -51,12 +68,16 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token && session.user && token.sub) {
         session.user.id = token.sub;
+        session.user.onboardingCompleted = token.onboardingCompleted ?? false;
+        session.user.provider = token.provider || "credentials";
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
+        token.onboardingCompleted = user.onboardingCompleted;
+        token.provider = user.provider;
       }
       return token;
     },

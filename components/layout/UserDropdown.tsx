@@ -5,6 +5,7 @@ import Link from "next/link";
 import { User, Settings, HelpCircle, LogOut, Moon, Sun, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
+import { useSession, signOut } from "next-auth/react";
 import { useThemeStore } from "@/store/useThemeStore";
 
 export function UserDropdown() {
@@ -12,6 +13,19 @@ export function UserDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const { setTheme: setZustandTheme } = useThemeStore();
+  const { data: session } = useSession();
+
+  const user = session?.user;
+  const displayName = user?.name || "System Administrator";
+  const displayEmail = user?.email || "admin@pts-app.com";
+  const userInitials = displayName
+    ? displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "SYS";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,6 +43,11 @@ export function UserDropdown() {
     setZustandTheme(nextTheme as any);
   };
 
+  const handleSignOut = async () => {
+    setIsOpen(false);
+    await signOut({ callbackUrl: "/" });
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
@@ -38,9 +57,18 @@ export function UserDropdown() {
         aria-haspopup="true"
         aria-label="User account menu"
       >
-        <div className="h-8 w-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-background">
-          SYS
-        </div>
+        {user?.image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={user.image}
+            alt={displayName}
+            className="h-8 w-8 rounded-full object-cover shadow-sm ring-2 ring-background"
+          />
+        ) : (
+          <div className="h-8 w-8 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold shadow-sm ring-2 ring-background">
+            {userInitials}
+          </div>
+        )}
         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
       </button>
 
@@ -55,8 +83,8 @@ export function UserDropdown() {
           >
             {/* Header info */}
             <div className="px-3 py-2.5 mb-1">
-              <p className="font-semibold text-sm leading-none">System Administrator</p>
-              <p className="text-xs text-muted-foreground mt-1 truncate">admin@pts-app.com</p>
+              <p className="font-semibold text-sm leading-none truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground mt-1 truncate">{displayEmail}</p>
             </div>
 
             {/* Navigation links */}
@@ -105,9 +133,7 @@ export function UserDropdown() {
                 <span>Help & Documentation</span>
               </a>
               <button
-                onClick={() => {
-                  setIsOpen(false);
-                }}
+                onClick={handleSignOut}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-destructive rounded-xl hover:bg-destructive/10 transition-colors text-left"
               >
                 <LogOut className="h-4 w-4" />
