@@ -1,43 +1,68 @@
 "use client";
 
-import React from "react";
-import { Menu } from "lucide-react";
+import React, { useState } from "react";
+import { Menu, Bell } from "lucide-react";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { GlobalSearch } from "./GlobalSearch";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserDropdown } from "./UserDropdown";
+import { CommandPalette } from "./CommandPalette";
+import { NotificationPanel } from "./NotificationPanel";
 import { Button } from "@/components/ui/button";
 
-export function Navbar() {
+interface NavbarProps {
+  onToggleMobileSidebar: () => void;
+}
+
+export function Navbar({ onToggleMobileSidebar }: NavbarProps) {
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 md:px-6 backdrop-blur-md">
-      <div className="flex items-center gap-3">
-        {/* Mobile Menu Button (Infrastructure Ready) */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          aria-label="Open mobile navigation menu"
-          title="Toggle Navigation"
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+    <>
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 md:px-6 backdrop-blur-md transition-shadow">
+        {/* Left Side: Mobile Menu Button & Breadcrumbs */}
+        <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleMobileSidebar}
+            className="md:hidden text-muted-foreground hover:text-foreground"
+            aria-label="Open navigation sidebar"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
 
-        <h1 className="text-lg font-semibold tracking-tight font-display">
-          Personal Tracking System
-        </h1>
-        <span className="hidden sm:inline-flex items-center rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
-          Foundation Engine
-        </span>
-      </div>
-
-      <div className="flex items-center gap-3">
-        <ThemeToggle />
-        <div
-          className="h-8 w-8 rounded-full bg-muted border flex items-center justify-center text-xs font-medium text-muted-foreground shadow-sm select-none"
-          title="System User Profile Placeholder"
-          aria-label="User Profile"
-        >
-          SYS
+          <Breadcrumbs />
         </div>
-      </div>
-    </header>
+
+        {/* Right Side: Global Search, Notification Bell, Theme Toggle, User Dropdown */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Global Search Bar */}
+          <GlobalSearch onOpen={() => setIsCommandOpen(true)} />
+
+          {/* Notification Trigger Button */}
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="relative p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            aria-label="Open notifications panel"
+            title="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-accent ring-2 ring-background animate-pulse" />
+          </button>
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* User Profile Dropdown */}
+          <UserDropdown />
+        </div>
+      </header>
+
+      {/* Global Interactive Overlays */}
+      <CommandPalette isOpen={isCommandOpen} onClose={() => setIsCommandOpen(false)} />
+      <NotificationPanel isOpen={isNotificationsOpen} onClose={() => setIsNotificationsOpen(false)} />
+    </>
   );
 }
