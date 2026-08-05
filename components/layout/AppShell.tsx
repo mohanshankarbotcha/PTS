@@ -17,6 +17,20 @@ export function AppShell({ children }: AppShellProps) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const pathname = usePathname();
 
+  // If visiting the public root landing page (/), render standalone public layout
+  const isPublicLanding = pathname === "/";
+
+  if (isPublicLanding) {
+    return (
+      <div className="min-h-screen bg-background text-foreground selection:bg-accent selection:text-accent-foreground">
+        {children}
+        <GlobalNotificationContainer />
+        <ModalContainer />
+        <LoadingOverlay isLoading={false} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       {/* Desktop & Mobile Responsive Sidebar */}
