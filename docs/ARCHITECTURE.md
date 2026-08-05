@@ -35,19 +35,21 @@ PTS is designed as an enterprise-grade Personal Operating System combining produ
 ## 2. Directory Structure Conventions
 
 * `app/`: Next.js App Router routes, layouts, server components, and API route handlers.
+  * `/`: Standalone public marketing landing page website.
+  * `/auth/*`: Sign in, sign up, forgot password, reset password pages.
+  * `/onboarding`: 9-step FTUE multi-step personalization engine.
+  * `/dashboard`, `/tasks`, `/workouts`, `/notes`, `/calendar`, `/analytics`, `/goals`, `/settings`: Authenticated application shell routes.
 * `components/`: UI components organized into:
-  * `ui/`: Primitive reusable components (button, card, input, etc.).
-  * `layout/`: Global layout components (Navbar, Sidebar, ModalContainer, etc.).
-  * `shared/`: Generic multi-purpose widgets and helpers.
-* `features/`: Business-logic domain modules (Tasks, Workouts, Notes, Analytics).
-* `hooks/`: Custom React client hooks.
-* `lib/`: System infrastructure (Prisma DB client, Auth options, Storage abstraction, Notification manager).
-* `services/`: API communication wrappers and microservices integration layer.
-* `store/`: Zustand state management stores with persistence where appropriate.
-* `styles/`: CSS design system tokens and styling variables.
-* `types/`: Global TypeScript interface and type declarations.
-* `prisma/`: Prisma database schema and migration scripts.
-* `docs/`: Comprehensive project documentation.
+  * `ui/`: Primitive reusable components (button, card, input, skeletons, etc.).
+  * `layout/`: Global Application Shell components (AppShell, Navbar, Sidebar, CommandPalette, NotificationPanel, UserDropdown, ThemeToggle).
+  * `landing/`: Standalone public landing page components.
+  * `auth/`: Reusable authentication components (AuthLayout, AuthCard, PasswordInput, PasswordStrength, OAuthButton, FormError, FormSuccess, LoadingButton).
+  * `onboarding/`: FTUE personalization components (ProgressHeader, OnboardingCard, StepContainer, AnimatedOptionCard, TimeSelector, PreferenceToggle, AvatarUploader, ReviewCard, CompletionAnimation).
+* `lib/`: System infrastructure (`db.ts`, `auth.ts`, `storage.ts`, `notifications.ts`).
+* `store/`: Zustand state stores (`useAppStore.ts`, `useThemeStore.ts`).
+* `types/`: Global TypeScript definitions (`next-auth.d.ts`).
+* `prisma/`: Prisma schema (`schema.prisma`) with Auth, UserProfile, UserPreferences, UserGoals, OnboardingProgress, and PTS Core models.
+* `docs/`: Complete documentation (`CHANGELOG.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `ROADMAP.md`).
 
 ---
 
@@ -61,9 +63,13 @@ PTS is designed as an enterprise-grade Personal Operating System combining produ
 ### 3.2 Database Layer
 * **ORM**: Prisma ORM v5.
 * **Database**: PostgreSQL.
-* Direct mapping between Prisma Client models and domain entities.
+* Dedicated models: `User`, `Account`, `Session`, `UserProfile`, `UserPreferences`, `UserGoals`, `OnboardingProgress`, `Task`, `Workout`, `Reminder`, `Note`, `Goal`, `Streak`, `Achievement`, `Analytics`.
 
 ### 3.3 Authentication & Security
-* Auth.js (NextAuth v4) with JWT session strategy.
-* Supports OAuth (Google) and email/password credentials infrastructure.
-* Strict CORS, TypeScript strict mode, and type safety declarations in `types/next-auth.d.ts`.
+* NextAuth v4 + Credentials Provider + Google OAuth.
+* Password hashing with 12-round salted `bcryptjs`.
+* Route Protection via `middleware.ts` inspecting JWT tokens and enforcing `onboardingCompleted` redirect flows.
+
+### 3.4 First-Time User Experience (FTUE) & Personalization Engine
+* 9-step conversational onboarding workflow collecting profile details, fitness goals, productivity goals, daily schedule, notification preferences, and workspace appearance.
+* Real-time cloud progress autosave & step restoration.
